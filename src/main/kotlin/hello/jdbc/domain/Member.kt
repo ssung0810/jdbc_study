@@ -1,6 +1,6 @@
 package hello.jdbc.domain
 
-class Member(
-    val memberId: String,
-    val money: Int
+data class Member(
+    var memberId: String? = null,
+    var money: Int? = 0
 )
