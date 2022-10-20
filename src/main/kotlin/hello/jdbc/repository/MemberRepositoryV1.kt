@@ -2,12 +2,20 @@ package hello.jdbc.repository
 
 import hello.jdbc.connection.DBConnectionUtil
 import hello.jdbc.domain.Member
+import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.batch.BatchProperties.Jdbc
+import org.springframework.jdbc.support.JdbcUtils
 import java.sql.*
+import javax.sql.DataSource
 
 /**
- * JDBC - DriverManager 사용
+ * JDBC - DataSource 사용
  */
-class MemberRepositoryV0 {
+class MemberRepositoryV1(
+    private val dataSource: DataSource? = null
+) {
+    private val logger = LoggerFactory.getLogger(this.javaClass)
+
     fun save(member: Member): Member {
         val sql = "insert into member(member_id, money) values(?, ?)"
 
@@ -96,22 +104,14 @@ class MemberRepositoryV0 {
     }
 
     private fun close(con: Connection?, stmt: Statement?, rs: ResultSet?) {
-        if (stmt != null) {
-            try {
-                stmt.close()
-            } catch (e: SQLException) {
-            }
-        }
-
-        if (con != null) {
-            try {
-                con.close()
-            } catch (e: SQLException) {
-            }
-        }
+        JdbcUtils.closeConnection(con)
+        JdbcUtils.closeStatement(stmt)
+        JdbcUtils.closeResultSet(rs)
     }
 
     private fun getConnection(): Connection {
-        return DBConnectionUtil.getConnection()
+        val con = dataSource!!.connection
+        logger.info("connection=${con} / class=${con.javaClass}")
+        return con
     }
 }
