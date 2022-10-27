@@ -2,15 +2,14 @@ package hello.jdbc.repository
 
 import hello.jdbc.domain.Member
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.batch.BatchProperties.Jdbc
 import org.springframework.jdbc.support.JdbcUtils
 import java.sql.*
 import javax.sql.DataSource
 
 /**
- * JDBC - DataSource 사용
+ * JDBC - Connection
  */
-class MemberRepositoryV1(
+class MemberRepositoryV2(
     private val dataSource: DataSource? = null
 ) {
     private val logger = LoggerFactory.getLogger(this.javaClass)
@@ -18,8 +17,8 @@ class MemberRepositoryV1(
     fun save(member: Member): Member {
         val sql = "insert into member(member_id, money) values(?, ?)"
 
-        var con: Connection? = null
         var pstmt: PreparedStatement? = null
+        var con: Connection? = null
 
         try {
             con = getConnection()
@@ -31,16 +30,16 @@ class MemberRepositoryV1(
         } catch (e: SQLException) {
             throw e
         } finally {
-            close(con, pstmt, null)
+            JdbcUtils.closeStatement(pstmt)
         }
     }
 
     fun findById(memberId: String): Member {
         val sql = "select * from member where member_id = ?"
 
-        var con: Connection? = null
         var pstmt: PreparedStatement? = null
         var rs: ResultSet? = null
+        var con: Connection? = null
 
         try {
             con = getConnection()
@@ -59,18 +58,44 @@ class MemberRepositoryV1(
         } catch (e: SQLException) {
             throw e
         } finally {
-            close(con, pstmt, rs)
+            JdbcUtils.closeStatement(pstmt)
+            JdbcUtils.closeResultSet(rs)
         }
     }
 
-    fun update(memberId: String, money: Int) {
+    fun findById(con: Connection, memberId: String): Member {
+        val sql = "select * from member where member_id = ?"
+
+        var pstmt: PreparedStatement? = null
+        var rs: ResultSet? = null
+
+        try {
+            pstmt = con.prepareStatement(sql)
+            pstmt.setString(1, memberId)
+
+            rs = pstmt.executeQuery()
+            if (rs.next()) {
+                val member = Member()
+                member.memberId = rs.getString("member_id")
+                member.money = rs.getInt("money")
+                return member
+            } else {
+                throw NoSuchElementException("member not found member_id=${memberId}")
+            }
+        } catch (e: SQLException) {
+            throw e
+        } finally {
+            JdbcUtils.closeStatement(pstmt)
+            JdbcUtils.closeResultSet(rs)
+        }
+    }
+
+    fun update(con: Connection, memberId: String, money: Int) {
         val sql = "update member set money=? where member_id=?"
 
-        var con: Connection? = null
         var pstmt: PreparedStatement? = null
 
         try {
-            con = getConnection()
             pstmt = con.prepareStatement(sql)
             pstmt.setInt(1, money)
             pstmt.setString(2, memberId)
@@ -79,15 +104,15 @@ class MemberRepositoryV1(
         } catch (e: SQLException) {
             throw e
         } finally {
-            close(con, pstmt, null)
+            JdbcUtils.closeStatement(pstmt)
         }
     }
 
     fun delete(memberId: String) {
         val sql = "delete from member where member_id = ?"
 
-        var con: Connection? = null
         var pstmt: PreparedStatement? = null
+        var con: Connection? = null
 
         try {
             con = getConnection()
