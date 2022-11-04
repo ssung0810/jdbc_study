@@ -13,7 +13,7 @@ import javax.sql.DataSource
  * DataSourceUtils.getConnection()
  */
 class MemberRepositoryV3(
-    private val dataSource: DataSource? = null
+    private val dataSource: DataSource
 ) {
     private val logger = LoggerFactory.getLogger(this.javaClass)
 
